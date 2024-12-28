@@ -2,8 +2,7 @@ from typing import Any
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
-from google.api_core.exceptions import InvalidArgument
-from src.app.repository.log import CloudLogsQuery, MissingQueryParameterException
+from src.app.repository.log import CloudLogsQuery, MissingQueryParameterException, InvalidFilterQueryException
 
 # Mocked log entry for testing
 mock_log_entry = MagicMock()
@@ -52,10 +51,10 @@ def test_query_logs_missing_parameters(cloud_logs_query):
 def test_query_logs_invalid_filter(cloud_logs_query, mock_logging_client):
     # Arrange
     mock_instance = mock_logging_client.return_value
-    mock_instance.list_entries.side_effect = InvalidArgument("400 Unparseable filter")
+    mock_instance.list_entries.side_effect = InvalidFilterQueryException("400 Unparseable filter")
 
     # Act & Assert
-    with pytest.raises(InvalidArgument):
+    with pytest.raises(InvalidFilterQueryException):
         cloud_logs_query.query_logs(
             cloud_function_name="my-function",
             cloud_function_region="mock-region",

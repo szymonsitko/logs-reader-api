@@ -3,16 +3,11 @@ from fastapi.responses import JSONResponse
 from datetime import datetime
 from google.cloud import logging
 
-import os
+from src.app.repository.log import CloudLogsQuery, InvalidFilterQueryException, MissingQueryParameterException
+from src.pkg.settings import Settings
 
-from src.app.repository.log import CloudLogsQuery
-from pydantic_settings import BaseSettings
-
-class Settings(BaseSettings):
-    service_account_credentials: str | None = os.getenv("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH")
-
-settings = Settings()
 app = FastAPI()
+settings = Settings()
 
 # Get all GCP logs for service
 @app.get("/logs/{cloud_function_name}")
@@ -34,8 +29,18 @@ async def get_logs(cloud_function_name: str, cloud_function_region = str, start_
             severity=severity
         )
         return logs
-    except Exception:
+    except Exception as e:       
+        if isinstance(e, MissingQueryParameterException) or isinstance(e, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"message": "Missing required parameters."},
+            )
+        if isinstance(e, InvalidFilterQueryException):
+            return JSONResponse(
+                status_code=422,
+                content={"message": "Invalid filter query provided."},
+            )
         return JSONResponse(
-            status_code=400,
-            content={"message": "An error occurred while fetching logs."},
+            status_code=500,
+            content={"message": f"Internal server error: {repr(e)}."},
         )

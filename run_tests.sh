@@ -15,10 +15,6 @@ export GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH=/home/ssitko/Documents/projects/f
 
 # Run tests
 if [ "$testing_mode" == "integration" ]; then
-    export PROJECT_ID=k8s-deployment
-    export FUNCTION_NAME=sample-func
-    export GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH=/home/ssitko/Documents/projects/fastapi/python/sa-credentials.json
-
     python -m pytest './tests/integration/.'
 elif [ "$testing_mode" == "unit" ]; then
     python -m pytest './tests/unit/.'

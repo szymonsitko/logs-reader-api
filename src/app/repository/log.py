@@ -7,6 +7,12 @@ class MissingQueryParameterException(Exception):
 
     def __init__(self, message: str):
         super().__init__(message)
+        
+class InvalidFilterQueryException(Exception):
+    """Custom exception for invalid filtering query provided."""
+
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 class CloudLogsQuery:
@@ -34,7 +40,7 @@ class CloudLogsQuery:
         :param start_time: Start of the time range for logs (datetime object).
         :param end_time: End of the time range for logs (datetime object).
         :param severity: (Optional) Minimum severity level for logs (e.g., "ERROR").
-        :return: Logs in LogsDataset structure.
+        :return: Logs in list structure (nested objects).
         :raises MissingQueryParameterException: If any required parameter is missing.
         """
         if not all([cloud_function_name, cloud_function_region, start_time, end_time]):
@@ -59,20 +65,21 @@ class CloudLogsQuery:
         if query:
             log_filter += f'AND {query}'
 
-        log_entries = self.client.list_entries(filter_=log_filter)
-
-        # Parse the logs into LogsDataset format
-        logs = []
-        for entry in log_entries:
-            text_payload = None
-            if isinstance(entry.payload, dict):
-                text_payload = entry.payload.get("message")
-            elif isinstance(entry.payload, str):
-                text_payload = entry.payload
-            logs.append({
-                "timestamp": entry.timestamp.isoformat(),
-                "severity": entry.severity,
-                "textPayload": text_payload,
-                "resource": entry.resource.labels,
-            })
-        return logs
+        try:
+            log_entries = self.client.list_entries(filter_=log_filter)
+            logs = []
+            for entry in log_entries:
+                text_payload = None
+                if isinstance(entry.payload, dict):
+                    text_payload = entry.payload.get("message")
+                elif isinstance(entry.payload, str):
+                    text_payload = entry.payload
+                logs.append({
+                    "timestamp": entry.timestamp.isoformat(),
+                    "severity": entry.severity,
+                    "textPayload": text_payload,
+                    "resource": entry.resource.labels,
+                })
+            return logs
+        except:
+            raise InvalidFilterQueryException("Invalid filter query provided.")

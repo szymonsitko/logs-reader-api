@@ -49,3 +49,15 @@ def test_query_logs_invalid_time_format():
         }
     )
     assert response.status_code == 400  # Bad Request
+    
+def test_query_logs_invalid_severity_provided():
+    response = client.get(
+        "/logs/sample-func",
+        params={
+            "cloud_function_region": "europe-central2",
+            "start_time": "2024-12-01T00:00:00Z",
+            "end_time": "2024-12-31T00:00:00Z",
+            "severity": "INVALID",
+        }
+    )
+    assert response.status_code == 422  # Unprocessable Entity

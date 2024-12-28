@@ -8,9 +8,9 @@ from src.app.repository.log import CloudLogsQuery
 
 @pytest.fixture
 def cloud_logs_query() -> CloudLogsQuery:
-    sa_credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH")
+    sa_credentials = os.getenv("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH")
     if sa_credentials is None:
-        raise ValueError("GOOGLE_APPLICATION_CREDENTIALS_PATH environment variable is not set.")
+        raise ValueError("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH environment variable is not set.")
     logging_client = logging.Client.from_service_account_json(sa_credentials)
     return CloudLogsQuery(logging_client)
 

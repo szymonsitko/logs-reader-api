@@ -173,3 +173,4 @@ cython_debug/
 # Local files to ignore
 nohup.out
 sa-credentials.json
+sa-invalid.json
