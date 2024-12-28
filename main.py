@@ -34,8 +34,7 @@ async def get_logs(cloud_function_name: str, cloud_function_region = str, start_
             severity=severity
         )
         return logs
-    except Exception as e:
-        print("Error!", e)
+    except Exception:
         return JSONResponse(
             status_code=400,
             content={"message": "An error occurred while fetching logs."},
