@@ -15,7 +15,7 @@ def get_app_with_valid_config() -> TestClient:
 @pytest.fixture
 def get_app_with_invalid_config() -> TestClient:
     settings = Settings()
-    settings.service_account_credentials = None
+    settings.set_service_account_credentials_env_var("INVALID_CREDENTIALS_ENV_VAR")
     app = api(settings=settings)
     return TestClient(app)
 
