@@ -1,4 +1,6 @@
 from google.cloud.logging import Client
+from src.app.repository.domain import LogEntry
+
 from datetime import datetime
 
 
@@ -19,7 +21,7 @@ class InvalidFilterQueryException(Exception):
 class CloudLogsQuery:
     def __init__(self, client: Client):
         """
-        Initialize the CloudLogsQuery with service account credentials.
+        Initialize the CloudLogsQuery with a logging client.
 
         :param client: Injected logging Client.
         """
@@ -33,16 +35,19 @@ class CloudLogsQuery:
         end_time: datetime,
         query: str = "",
         severity: str = "DEFAULT",
-    ) -> list:
+    ) -> list[LogEntry]:
         """
         Query logs for a specified Cloud Function within a given time range.
+
         :param cloud_function_name: Name of the Cloud Function to query logs for.
-        :param query: The string query to filter logs.
+        :param cloud_function_region: Region of the Cloud Function.
         :param start_time: Start of the time range for logs (datetime object).
         :param end_time: End of the time range for logs (datetime object).
+        :param query: (Optional) The string query to filter logs.
         :param severity: (Optional) Minimum severity level for logs (e.g., "ERROR").
-        :return: Logs in list structure (nested objects).
+        :return: List of LogEntry objects.
         :raises MissingQueryParameterException: If any required parameter is missing.
+        :raises InvalidFilterQueryException: If the filter query is invalid.
         """
         if not all([cloud_function_name, cloud_function_region, start_time, end_time]):
             raise MissingQueryParameterException(
@@ -68,7 +73,7 @@ class CloudLogsQuery:
 
         try:
             log_entries = self.client.list_entries(filter_=log_filter)
-            logs = []
+            logs: list[LogEntry] = []
             for entry in log_entries:
                 text_payload = None
                 if isinstance(entry.payload, dict):
@@ -76,12 +81,12 @@ class CloudLogsQuery:
                 elif isinstance(entry.payload, str):
                     text_payload = entry.payload
                 logs.append(
-                    {
-                        "timestamp": entry.timestamp.isoformat(),
-                        "severity": entry.severity,
-                        "textPayload": text_payload,
-                        "resource": entry.resource.labels,
-                    }
+                    LogEntry(
+                        timestamp=entry.timestamp.isoformat(),
+                        severity=entry.severity,
+                        textPayload=text_payload,
+                        resource=entry.resource.labels,
+                    )
                 )
             return logs
         except:

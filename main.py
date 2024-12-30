@@ -2,8 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from contextlib import asynccontextmanager
 from datetime import datetime
 from google.cloud import logging
-from pydantic import BaseModel
-from typing import List, Dict, Any, Annotated
+from typing import List, Annotated
 from sqlmodel import Session, SQLModel, create_engine
 
 from src.app.repository.model import Log
@@ -12,16 +11,10 @@ from src.app.repository.log import (
     InvalidFilterQueryException,
     MissingQueryParameterException,
 )
+from src.app.repository.domain import LogEntry
 from src.pkg.settings import Settings
 
 import json
-
-
-class LogEntry(BaseModel):
-    timestamp: datetime
-    severity: str | None
-    textPayload: str | None
-    resource: Dict[str, Any]
 
 
 # Define the FastAPI app wrapper
@@ -95,6 +88,7 @@ def api_factory(settings: Settings) -> FastAPI:
                 status_code=500, detail=f"Internal server error: {repr(e)}."
             )
 
+    # Store log entry to the database
     @app.post(
         "/log",
         response_model=LogEntry,

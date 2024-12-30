@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from datetime import datetime
 from src.app.repository.log import (
     CloudLogsQuery,
+    LogEntry,
     MissingQueryParameterException,
     InvalidFilterQueryException,
 )
@@ -51,8 +52,9 @@ async def test_query_logs_success(async_cloud_logs_query):
 
     # Assert
     assert len(results) == 1
-    assert results[0]["severity"] == "ERROR"
-    assert results[0]["textPayload"] == "Test log entry"
+    assert isinstance(results[0], LogEntry)
+    assert results[0].severity == "ERROR"
+    assert results[0].textPayload == "Test log entry"
 
 
 @pytest.mark.asyncio
@@ -101,7 +103,8 @@ async def test_query_logs_with_severity(async_cloud_logs_query):
 
     # Assert
     assert len(results) == 1
-    assert results[0]["severity"] == "ERROR"
+    assert isinstance(results[0], LogEntry)
+    assert results[0].severity == "ERROR"
 
 
 @pytest.mark.asyncio
@@ -117,4 +120,5 @@ async def test_query_logs_without_severity(async_cloud_logs_query):
 
     # Assert
     assert len(results) == 1
-    assert results[0]["severity"] == "ERROR"
+    assert isinstance(results[0], LogEntry)
+    assert results[0].severity == "ERROR"

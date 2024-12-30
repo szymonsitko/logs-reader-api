@@ -4,7 +4,7 @@ import pytest
 from datetime import datetime
 from google.cloud import logging
 
-from src.app.repository.log import CloudLogsQuery
+from src.app.repository.log import CloudLogsQuery, LogEntry
 
 
 @pytest.fixture
@@ -49,7 +49,8 @@ async def test_query_logs_success(cloud_logs_query: CloudLogsQuery, get_function
         # Assert
         assert len(result) > 0
         for entry in result:
-            entry_timestamp = datetime.fromisoformat(entry["timestamp"]).astimezone()
+            assert isinstance(entry, LogEntry)
+            entry_timestamp = entry.get_timestamp().astimezone()
             assert entry_timestamp >= start_time
             assert entry_timestamp <= end_time
-            assert entry["severity"] == log_severity
+            assert entry.get_severity()
