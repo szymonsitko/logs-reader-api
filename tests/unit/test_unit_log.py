@@ -1,6 +1,7 @@
 from typing import Any
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+import pytest_asyncio
+from unittest.mock import MagicMock, patch
 from datetime import datetime
 from src.app.repository.log import (
     CloudLogsQuery,
@@ -29,9 +30,17 @@ def cloud_logs_query(mock_logging_client):
     return CloudLogsQuery(mock_instance)
 
 
-def test_query_logs_success(cloud_logs_query):
+@pytest_asyncio.fixture
+async def async_cloud_logs_query(mock_logging_client):
+    mock_instance = mock_logging_client.return_value
+    mock_instance.list_entries.return_value = [mock_log_entry]
+    return CloudLogsQuery(mock_instance)
+
+
+@pytest.mark.asyncio
+async def test_query_logs_success(async_cloud_logs_query):
     # Act
-    results = cloud_logs_query.query_logs(
+    results = await async_cloud_logs_query.query_logs(
         cloud_function_name="my-function",
         cloud_function_region="mock-region",
         query="SOMEQUERY",
@@ -46,9 +55,10 @@ def test_query_logs_success(cloud_logs_query):
     assert results[0]["textPayload"] == "Test log entry"
 
 
-def test_query_logs_missing_parameters(cloud_logs_query):
+@pytest.mark.asyncio
+async def test_query_logs_missing_parameters(async_cloud_logs_query):
     with pytest.raises(MissingQueryParameterException):
-        cloud_logs_query.query_logs(
+        await async_cloud_logs_query.query_logs(
             cloud_function_name="",
             cloud_function_region="",
             query="",
@@ -57,7 +67,8 @@ def test_query_logs_missing_parameters(cloud_logs_query):
         )
 
 
-def test_query_logs_invalid_filter(cloud_logs_query, mock_logging_client):
+@pytest.mark.asyncio
+async def test_query_logs_invalid_filter(async_cloud_logs_query, mock_logging_client):
     # Arrange
     mock_instance = mock_logging_client.return_value
     mock_instance.list_entries.side_effect = InvalidFilterQueryException(
@@ -66,7 +77,7 @@ def test_query_logs_invalid_filter(cloud_logs_query, mock_logging_client):
 
     # Act & Assert
     with pytest.raises(InvalidFilterQueryException):
-        cloud_logs_query.query_logs(
+        await async_cloud_logs_query.query_logs(
             cloud_function_name="my-function",
             cloud_function_region="mock-region",
             query="INVALIDQUERY",
@@ -76,9 +87,10 @@ def test_query_logs_invalid_filter(cloud_logs_query, mock_logging_client):
         )
 
 
-def test_query_logs_with_severity(cloud_logs_query):
+@pytest.mark.asyncio
+async def test_query_logs_with_severity(async_cloud_logs_query):
     # Act
-    results = cloud_logs_query.query_logs(
+    results = await async_cloud_logs_query.query_logs(
         cloud_function_name="my-function",
         cloud_function_region="mock-region",
         query="",
@@ -92,9 +104,10 @@ def test_query_logs_with_severity(cloud_logs_query):
     assert results[0]["severity"] == "ERROR"
 
 
-def test_query_logs_without_severity(cloud_logs_query):
+@pytest.mark.asyncio
+async def test_query_logs_without_severity(async_cloud_logs_query):
     # Act
-    results = cloud_logs_query.query_logs(
+    results = await async_cloud_logs_query.query_logs(
         cloud_function_name="my-function",
         cloud_function_region="mock-region",
         query="",

@@ -11,7 +11,8 @@ fi
 # Export variables
 export PROJECT_ID=k8s-deployment
 export FUNCTION_NAME=sample-func
-export GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH=/home/ssitko/Documents/projects/fastapi/python/sa-credentials.json
+export GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH="/home/ssitko/Documents/projects/fastapi/python/sa-credentials.json"
+export MYSQL_CONNECTION_STRING="mysql+pymysql://root:password@localhost:3306/logs"
 
 # Run tests
 if [ "$testing_mode" == "integration" ]; then

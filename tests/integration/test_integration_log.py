@@ -23,7 +23,8 @@ def get_function_name() -> str | None:
     return os.environ.get("FUNCTION_NAME")
 
 
-def test_query_logs_success(cloud_logs_query: CloudLogsQuery, get_function_name: str):
+@pytest.mark.asyncio
+async def test_query_logs_success(cloud_logs_query: CloudLogsQuery, get_function_name: str):
     # Queries
     queries = {"ERROR": "POST"}
 
@@ -36,7 +37,7 @@ def test_query_logs_success(cloud_logs_query: CloudLogsQuery, get_function_name:
     # Act
     for test_query in queries.items():
         log_severity, query = test_query
-        result = cloud_logs_query.query_logs(
+        result = await cloud_logs_query.query_logs(
             cloud_function_name=function_name,
             cloud_function_region=cloud_function_region,
             query=query,

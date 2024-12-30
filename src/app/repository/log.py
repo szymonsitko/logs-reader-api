@@ -25,7 +25,7 @@ class CloudLogsQuery:
         """
         self.client = client
 
-    def query_logs(
+    async def query_logs(
         self,
         cloud_function_name: str,
         cloud_function_region: str,
