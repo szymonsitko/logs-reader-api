@@ -8,7 +8,7 @@ class LogEntry(BaseModel):
     textPayload: str | None
     resource: Dict[str, Any]
 
-    def get_entry(self) -> dict:
+    def get_log_entry(self) -> dict:
         """
         Get the log entry as a dictionary.
         

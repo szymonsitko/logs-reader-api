@@ -3,8 +3,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from google.cloud import logging
 from typing import List, Annotated
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 
+from src.app.infrastructure.http import LogEntryNotFoundException
 from src.app.repository.model import Log
 from src.app.repository.log import (
     CloudLogsQuery,
@@ -64,7 +65,7 @@ def api_factory(settings: Settings) -> FastAPI:
                 settings.service_account_credentials
             )
             log_query_client = CloudLogsQuery(logging_client)
-            logs: list = await log_query_client.query_logs(
+            logs: list[LogEntry] = await log_query_client.query_logs(
                 cloud_function_name=cloud_function_name,
                 cloud_function_region=cloud_function_region,
                 query=log_query,
@@ -72,7 +73,7 @@ def api_factory(settings: Settings) -> FastAPI:
                 end_time=datetime.fromisoformat(end_time),
                 severity=severity,
             )
-            return logs
+            return [log.get_log_entry() for log in logs]
         except Exception as e:
             if isinstance(e, MissingQueryParameterException) or isinstance(
                 e, ValueError
@@ -97,7 +98,9 @@ def api_factory(settings: Settings) -> FastAPI:
             500: {"description": "Internal server error."},
         },
     )
-    def store_log(log: LogEntry, session: Annotated[Session, Depends(get_session)]):
+    def store_log_query(
+        log: LogEntry, session: Annotated[Session, Depends(get_session)]
+    ):
         try:
             log_db = Log(
                 severity=log.severity,
@@ -117,6 +120,42 @@ def api_factory(settings: Settings) -> FastAPI:
             raise HTTPException(
                 status_code=500, detail=f"Internal server error: {repr(e)}."
             )
+
+    # Obtain log query from the database
+    @app.get(
+        "/log/{query_param}",
+        response_model=LogEntry | list[LogEntry],
+        responses={
+            400: {"description": "Missing required parameters."},
+            404: {
+                "description": "Unable to find log entry using `int` param type, value `1"
+            },
+        },
+    )
+    async def get_log_query(
+        query_param: int | datetime, session: Annotated[Session, Depends(get_session)]
+    ):
+        try:
+            match query_param:
+                case int():
+                    query_log = session.get(Log, query_param)
+                case datetime():
+                    statement = select(Log).where(Log.timestamp == query_param)
+                    query_log = session.exec(statement).first()
+            if query_log is None:
+                raise LogEntryNotFoundException(
+                    message=f"Unable to find log entry using `{'id' if type(query_param) == int else 'datetime'}` param type, value `{query_param}`"
+                )
+            return LogEntry(
+                timestamp=query_log.timestamp,
+                severity=query_log.severity,
+                textPayload=query_log.textPayload,
+                resource=json.loads(query_log.resource) if query_log.resource else None,
+            )
+        except Exception as e:
+            if isinstance(e, LogEntryNotFoundException):
+                raise HTTPException(status_code=404, detail=str(e))
+            raise HTTPException(status_code=400, detail="Missing required parameters.")
 
     return app
 

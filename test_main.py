@@ -1,9 +1,17 @@
 from fastapi.testclient import TestClient
-
-import pytest
-
+from datetime import datetime
 from main import api_factory
 from src.pkg.settings import Settings
+from src.app.repository.model import Log
+from sqlmodel import Session, create_engine, SQLModel
+
+import pytest
+import random
+
+
+@pytest.fixture
+def random_log_entry_id() -> int:
+    return random.randint(10, 999)
 
 
 @pytest.fixture
@@ -18,6 +26,27 @@ def get_app_with_invalid_config() -> TestClient:
     settings.set_service_account_credentials_env_var("INVALID_CREDENTIALS_ENV_VAR")
     app = api_factory(settings=settings)
     return TestClient(app)
+
+
+@pytest.fixture
+def setup_database(random_log_entry_id):
+    settings = Settings()
+    mysql_conn_string = settings.get_mysql_connection_string()
+    engine = create_engine(mysql_conn_string)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        log_entry = Log(
+            id=random_log_entry_id,
+            severity="ERROR",
+            textPayload="Test log entry",
+            timestamp=datetime(2023, 12, 15, 12, 0, 0).strftime("%Y-%m-%d %H:%M:%S"),
+            resource='{"project_id": "test", "configuration_name": "test", "service_name": "test", "location": "test", "revision_name": "test"}',
+        )
+        session.add(log_entry)
+        session.commit()
+        yield
+        session.delete(log_entry)
+        session.commit()
 
 
 # Valid app config tests
@@ -96,6 +125,26 @@ def test_internal_server_error_store_log_invalid_datetime(get_app_with_valid_con
         },
     )
     assert response.status_code == 422  # Unprocessable Entity
+
+
+def test_get_log_query_success(
+    get_app_with_valid_config, setup_database, random_log_entry_id
+):
+    response = get_app_with_valid_config.get(f"/log/{random_log_entry_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["severity"] == "ERROR"
+    assert data["textPayload"] == "Test log entry"
+    assert data["timestamp"] == "2023-12-15T12:00:00"
+    assert data["resource"]["project_id"] == "test"
+
+
+def test_get_log_query_not_found(get_app_with_valid_config):
+    response = get_app_with_valid_config.get("/log/999")
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "Unable to find log entry using `id` param type, value `999`"
+    }
 
 
 # Invalid app config tests
