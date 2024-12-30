@@ -24,7 +24,9 @@ def get_function_name() -> str | None:
 
 
 @pytest.mark.asyncio
-async def test_query_logs_success(cloud_logs_query: CloudLogsQuery, get_function_name: str):
+async def test_query_logs_success(
+    cloud_logs_query: CloudLogsQuery, get_function_name: str
+):
     # Queries
     queries = {"ERROR": "POST"}
 

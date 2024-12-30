@@ -60,6 +60,18 @@ def api_factory(settings: Settings) -> FastAPI:
         log_query: str = "",
         severity: str = "DEFAULT",
     ):
+        """
+        Query logs for a specified Cloud Function within a given time range.
+
+        :param cloud_function_name: Name of the Cloud Function to query logs for.
+        :param cloud_function_region: Region of the Cloud Function.
+        :param start_time: Start of the time range for logs (ISO 8601 format).
+        :param end_time: End of the time range for logs (ISO 8601 format).
+        :param log_query: (Optional) The string query to filter logs.
+        :param severity: (Optional) Minimum severity level for logs (e.g., "ERROR").
+        :return: List of LogEntry objects.
+        :raises HTTPException: If any required parameter is missing or the filter query is invalid.
+        """
         try:
             logging_client = logging.Client.from_service_account_json(
                 settings.service_account_credentials
@@ -101,6 +113,14 @@ def api_factory(settings: Settings) -> FastAPI:
     def store_log_query(
         log: LogEntry, session: Annotated[Session, Depends(get_session)]
     ):
+        """
+        Store a log entry to the database.
+
+        :param log: LogEntry object to be stored.
+        :param session: Database session dependency.
+        :return: Stored LogEntry object.
+        :raises HTTPException: If any required parameter is missing or an internal server error occurs.
+        """
         try:
             log_db = Log(
                 severity=log.severity,
@@ -135,6 +155,14 @@ def api_factory(settings: Settings) -> FastAPI:
     async def get_log_query(
         query_param: int | datetime, session: Annotated[Session, Depends(get_session)]
     ):
+        """
+        Obtain a log query from the database.
+
+        :param query_param: ID or timestamp of the log entry to query.
+        :param session: Database session dependency.
+        :return: LogEntry object or list of LogEntry objects.
+        :raises HTTPException: If the log entry is not found or any required parameter is missing.
+        """
         try:
             match query_param:
                 case int():
