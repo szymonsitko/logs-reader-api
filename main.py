@@ -37,13 +37,16 @@ def api_factory(settings: Settings) -> FastAPI:
     def get_session():
         with Session(engine) as session:
             yield session
-            
+
     def get_logs_service():
         try:
             logging_client = logging.Client.from_service_account_json(
-                settings.service_account_credentials)
+                settings.service_account_credentials
+            )
         except FileNotFoundError as e:
-            raise ServiceAccountFileNotFouncError(f'Cannot read service account file for logging client: {str(e)}')
+            raise ServiceAccountFileNotFouncError(
+                f"Cannot read service account file for logging client: {str(e)}"
+            )
         logs_repo = CloudLogsQuery(logging_client)
         logs_service = LogsService(logs_repository=logs_repo)
         yield logs_service
@@ -191,7 +194,7 @@ def api_factory(settings: Settings) -> FastAPI:
                 timestamp=query_log.timestamp,
                 severity=query_log.severity,
                 textPayload=query_log.textPayload,
-                resource=json.loads(query_log.resource) if query_log.resource else None,
+                resource=json.loads(query_log.resource) if query_log.resource else {},
             )
         except Exception as e:
             if isinstance(e, LogEntryNotFoundException):

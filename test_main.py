@@ -28,7 +28,9 @@ def get_app_with_invalid_config() -> TestClient:
     invalid_service_account_json_path_env_key = "INVALID_CREDENTIALS_ENV_PATH_VAR"
     os.environ[invalid_service_account_json_path_env_key] = "/user/invalid/path.json"
     settings = Settings()
-    settings.set_service_account_credentials_env_var(invalid_service_account_json_path_env_key)
+    settings.set_service_account_credentials_env_var(
+        invalid_service_account_json_path_env_key
+    )
     app = api_factory(settings=settings)
     return TestClient(app)
 

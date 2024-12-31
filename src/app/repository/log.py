@@ -1,5 +1,5 @@
 from google.cloud.logging import Client
-from src.app.repository.domain import LogEntry
+from src.app.repository.domain import LogEntry, CloudLogsInterface
 
 from datetime import datetime
 
@@ -18,7 +18,7 @@ class InvalidFilterQueryException(Exception):
         super().__init__(message)
 
 
-class CloudLogsQuery:
+class CloudLogsQuery(CloudLogsInterface):
     def __init__(self, client: Client):
         """
         Initialize the CloudLogsQuery with a logging client.
