@@ -57,12 +57,11 @@ class LogEntry(BaseModel):
 
 class CloudLogsInterface(Protocol):
     async def query_logs(
-            self,
-            cloud_function_name: str,
-            cloud_function_region: str,
-            start_time: datetime,
-            end_time: datetime,
-            query: str = "",
-            severity: str = "DEFAULT",
-        ) -> list[LogEntry]:
-        ...
+        self,
+        cloud_function_name: str,
+        cloud_function_region: str,
+        start_time: datetime,
+        end_time: datetime,
+        query: str = "",
+        severity: str = "DEFAULT",
+    ) -> list[LogEntry]: ...
