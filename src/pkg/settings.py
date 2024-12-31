@@ -17,14 +17,14 @@ class Settings(BaseSettings):
         super().__init__()
 
     def set_service_account_credentials_env_var(
-        self, service_account_credentials: str
+        self, service_account_credentials_var: str
     ) -> None:
-        self.service_account_credentials = service_account_credentials
+        self.service_account_credentials = os.getenv(service_account_credentials_var)
         
     def set_mysql_connection_string(self, mysql_connection_string: str) -> None:
         self.mysql_connection_string = mysql_connection_string
 
-    def get_service_account_credentials_env_var(self) -> str | None:
+    def get_service_account_credentialsr(self) -> str | None:
         return self.service_account_credentials
     
     def get_mysql_connection_string(self) -> str | None:

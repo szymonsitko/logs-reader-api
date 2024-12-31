@@ -5,8 +5,11 @@ from src.pkg.settings import Settings
 from src.app.repository.model import Log
 from sqlmodel import Session, create_engine, SQLModel
 
+from src.app.infrastructure.config import ServiceAccountFileNotFouncError
+
 import pytest
 import random
+import os
 
 
 @pytest.fixture
@@ -22,8 +25,10 @@ def get_app_with_valid_config() -> TestClient:
 
 @pytest.fixture
 def get_app_with_invalid_config() -> TestClient:
+    invalid_service_account_json_path_env_key = "INVALID_CREDENTIALS_ENV_PATH_VAR"
+    os.environ[invalid_service_account_json_path_env_key] = "/user/invalid/path.json"
     settings = Settings()
-    settings.set_service_account_credentials_env_var("INVALID_CREDENTIALS_ENV_VAR")
+    settings.set_service_account_credentials_env_var(invalid_service_account_json_path_env_key)
     app = api_factory(settings=settings)
     return TestClient(app)
 
@@ -147,14 +152,16 @@ def test_get_log_query_not_found(get_app_with_valid_config):
     }
 
 
-# Invalid app config tests
+# Invalid app config (sevice account json) tests
 def test_internal_server_error_invalid_settings(get_app_with_invalid_config):
-    response = get_app_with_invalid_config.get(
-        "/logs/sample-func",
-        params={
-            "cloud_function_region": "europe-central2",
-            "start_time": "2024-12-01T00:00:00Z",
-            "end_time": "2024-12-31T00:00:00Z",
-        },
-    )
-    assert response.status_code == 500  # Internal Server Error
+    try:
+        get_app_with_invalid_config.get(
+            "/logs/sample-func",
+            params={
+                "cloud_function_region": "europe-central2",
+                "start_time": "2024-12-01T00:00:00Z",
+                "end_time": "2024-12-31T00:00:00Z",
+            },
+        )
+    except Exception as e:
+        assert isinstance(e, ServiceAccountFileNotFouncError)

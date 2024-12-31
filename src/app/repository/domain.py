@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Protocol
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -53,3 +53,16 @@ class LogEntry(BaseModel):
         :return: Resource labels of the log entry.
         """
         return self.resource
+
+
+class CloudLogsInterface(Protocol):
+    async def query_logs(
+            self,
+            cloud_function_name: str,
+            cloud_function_region: str,
+            start_time: datetime,
+            end_time: datetime,
+            query: str = "",
+            severity: str = "DEFAULT",
+        ) -> list[LogEntry]:
+        ...

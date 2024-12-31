@@ -6,12 +6,15 @@ from typing import List, Annotated
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from src.app.infrastructure.http import LogEntryNotFoundException
+from src.app.infrastructure.config import ServiceAccountFileNotFouncError
 from src.app.repository.model import Log
 from src.app.repository.log import (
     CloudLogsQuery,
     InvalidFilterQueryException,
     MissingQueryParameterException,
 )
+
+from src.app.service.log import LogsService
 from src.app.repository.domain import LogEntry
 from src.pkg.settings import Settings
 
@@ -23,6 +26,8 @@ def api_factory(settings: Settings) -> FastAPI:
     mysql_conn_string = settings.get_mysql_connection_string()
     if mysql_conn_string is None:
         raise ValueError("Mysql connection string must be set")
+    if settings.get_service_account_credentialsr() is None:
+        raise ValueError("Google service account JSON key string must be set")
 
     engine = create_engine(mysql_conn_string)
 
@@ -32,8 +37,19 @@ def api_factory(settings: Settings) -> FastAPI:
     def get_session():
         with Session(engine) as session:
             yield session
+            
+    def get_logs_service():
+        try:
+            logging_client = logging.Client.from_service_account_json(
+                settings.service_account_credentials)
+        except FileNotFoundError as e:
+            raise ServiceAccountFileNotFouncError(f'Cannot read service account file for logging client: {str(e)}')
+        logs_repo = CloudLogsQuery(logging_client)
+        logs_service = LogsService(logs_repository=logs_repo)
+        yield logs_service
 
     SessionDep = Annotated[Session, Depends(get_session)]
+    LogsSevicetDep = Annotated[LogsService, Depends(get_logs_service)]
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -53,6 +69,7 @@ def api_factory(settings: Settings) -> FastAPI:
         },
     )
     async def get_logs(
+        logs_service: Annotated[LogsService, Depends(get_logs_service)],
         cloud_function_name: str,
         cloud_function_region: str,
         start_time: str,
@@ -73,11 +90,7 @@ def api_factory(settings: Settings) -> FastAPI:
         :raises HTTPException: If any required parameter is missing or the filter query is invalid.
         """
         try:
-            logging_client = logging.Client.from_service_account_json(
-                settings.service_account_credentials
-            )
-            log_query_client = CloudLogsQuery(logging_client)
-            logs: list[LogEntry] = await log_query_client.query_logs(
+            logs = await logs_service.get_logs(
                 cloud_function_name=cloud_function_name,
                 cloud_function_region=cloud_function_region,
                 query=log_query,
